@@ -5,10 +5,28 @@
     <meta charset="UTF-8">
     <title>Jihad Alloush</title>
     <style type="text/css">
-    #map{
-        height: 850px;
-        width: 100%;
+     html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  #map {
+    height: 100vh;
+    width: 100%;
+  }
+
+  .leaflet-control {
+    font-size: 1.2em;
+  }
+
+  @media (max-width: 600px) {
+    .leaflet-bar a {
+      width: 36px !important;
+      height: 36px !important;
+      line-height: 36px !important;
     }
+  }
     table {
             width: 300px;
         }
