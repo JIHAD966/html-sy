@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>رسم على الخريطة وحفظ في Supabase</title>
+  <title>رسم وتخزين على الخريطة</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -14,6 +14,8 @@
       margin: 0;
       padding: 0;
       height: 100%;
+      direction: rtl;
+      font-family: sans-serif;
     }
 
     #map {
@@ -21,6 +23,7 @@
       width: 100%;
     }
 
+    /* تكبير الأدوات للجوال */
     .leaflet-control {
       font-size: 16px !important;
     }
@@ -28,14 +31,6 @@
     .leaflet-draw-toolbar a {
       width: 36px !important;
       height: 36px !important;
-    }
-
-    .leaflet-draw-toolbar .leaflet-draw-draw-marker {
-      background-color: #007bff !important;
-    }
-
-    .leaflet-bar a {
-      font-size: 18px;
     }
 
     @media (max-width: 600px) {
@@ -53,36 +48,28 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
-<!-- Supabase & خريطة -->
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
+  // بيانات مشروعك في Supabase
   const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co'
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow'
-
+   // من Supabase > Settings > API
   const supabase = supabase.createClient(supabaseUrl, supabaseKey)
 
-  // باقي الكود كما هو...
-
-
-  // ⛳️ بيانات مشروعك
-  //const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co'
-  //const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow'
-
-  //const supabase = createClient(supabaseUrl, supabaseKey)
-
+  // إنشاء الخريطة
   const map = L.map('map').setView([33.5, 36.3], 7)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map)
 
+  // مجموعة الرسومات
   const drawnItems = new L.FeatureGroup()
   map.addLayer(drawnItems)
 
   const drawControl = new L.Control.Draw({
-    edit: {
-      featureGroup: drawnItems
-    },
+    edit: { featureGroup: drawnItems },
     draw: {
       polygon: true,
       polyline: true,
@@ -91,19 +78,19 @@
       marker: true
     }
   })
-
   map.addControl(drawControl)
 
-  // حفظ الرسمة في Supabase
+  // حفظ الرسم في Supabase
   map.on('draw:created', async function (e) {
     const layer = e.layer
     const geojson = layer.toGeoJSON()
     const type = geojson.geometry.type
     const geometry = geojson.geometry
+    const description = prompt('اكتب وصفاً لهذا الشكل:')
 
-    const description = prompt('اكتب وصفًا لهذا الشكل:')
+    if (!description) return
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('drawings')
       .insert([{ type, geometry, description }])
 
@@ -116,22 +103,21 @@
     }
   })
 
-  // تحميل كل الرسومات السابقة من Supabase
+  // تحميل الرسومات عند فتح الصفحة
   async function loadDrawings() {
     const { data, error } = await supabase
       .from('drawings')
       .select('*')
 
     if (error) {
-      console.error('خطأ في الجلب:', error)
+      alert('خطأ في تحميل البيانات')
       return
     }
 
     data.forEach(d => {
       const geoLayer = L.geoJSON({
         type: 'Feature',
-        geometry: d.geometry,
-        properties: {}
+        geometry: d.geometry
       })
       geoLayer.bindPopup(d.description || 'بدون وصف')
       geoLayer.addTo(drawnItems)
