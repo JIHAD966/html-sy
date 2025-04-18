@@ -5,95 +5,46 @@
     <meta charset="UTF-8">
     <title>Jihad Alloush</title>
 <style type="text/css">
-  /* خريطة تأخذ كامل الشاشة بشكل مرن */
-  #map {
-    height: 100vh;
-    width: 100%;
-  }
-
-  /* جداول العرض */
-  table {
-    width: 100%;
-    max-width: 100%;
-    font-size: 16px;
-  }
-
-  table, th, td {
-    border: solid 1px #DDD;
-    border-collapse: collapse;
-    padding: 6px 8px;
-    text-align: center;
-  }
-
-  /* جدول داخل مساحة قابلة للتمرير */
-  div.ex1 {
+    #map{
+        height: 850px;
+        width: 100%;
+    }
+    table {
+            width: 300px;
+        }
+        table, th, td {
+            border: solid 1px #DDD;
+            border-collapse: collapse;
+            padding: 2px 3px;
+            text-align: center;
+        }
+div.ex1 { 
     width: 100%;
     height: 200px;
-    overflow-x: auto;
+    overflow: scroll;
   }
-
-  /* جدول بتأثير hover */
-  .hoverTable {
-    width: 100%;
-  }
-
-  .hoverTable td {
-    padding: 10px;
-    border: #0d0d0d 1px solid;
-  }
-
-  .hoverTable tr {
-    background: white;
-  }
-
-  .hoverTable tr:hover {
-    background-color: #E5FFCC;
-    cursor: pointer;
-  }
-
-  #myTable {
-    border-collapse: collapse;
-    border: 1px solid rgb(145, 140, 140);
-    font-size: 16px;
-    width: 100%;
-  }
-
-  th, td {
-    text-align: left;
-    padding: 6px;
-  }
-
-  tr:nth-child(even) {
-    background-color: #eeeeee;
-  }
-
-  /* تكبير عناصر التحكم في الخريطة (مثل زر التكبير، الطبقات، أدوات الرسم) */
-  .leaflet-control-zoom, 
-  .leaflet-control-layers,
-  .leaflet-draw-toolbar-top,
-  .leaflet-bar {
-    transform: scale(1.4);
-    transform-origin: top left;
-  }
-
-  /* جعل الأزرار أسهل ضغطًا على الجوال */
-  .leaflet-bar a {
-    width: 40px !important;
-    height: 40px !important;
-    line-height: 40px !important;
-    font-size: 18px;
-  }
-
-  @media screen and (max-width: 768px) {
-    table, th, td {
-      font-size: 14px;
+.hoverTable{
+          width:100%;       
+      }
+      .hoverTable td{ 
+          padding:7px; border:#0d0d0d 1px solid;
+      }
+      .hoverTable tr{
+          background: white;
+      }
+      .hoverTable tr:hover {
+            background-color: #E5FFCC; cursor: pointer
+      }
+      #myTable {
+        border-collapse: collapse;
+        border: 1px solid rgb(145, 140, 140);
+        font-size: 15px;
     }
-    .leaflet-bar a {
-      width: 44px !important;
-      height: 44px !important;
-      font-size: 18px;
-    }
-  }
+th, td {
+  text-align: left;
+  padding: 3px;
+}
+tr:nth-child(even) {background-color: #eeeeee;}
 </style>
 
 
