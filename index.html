@@ -58,7 +58,18 @@
 <script>
   const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co'
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow'
+
   const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+
+  // باقي الكود كما هو...
+
+
+  // ⛳️ بيانات مشروعك
+  //const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co'
+  //const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow'
+
+  //const supabase = createClient(supabaseUrl, supabaseKey)
+
   const map = L.map('map').setView([33.5, 36.3], 7)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
