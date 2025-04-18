@@ -1,99 +1,132 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Supabase_3</title>
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-
+  <meta charset="UTF-8">
+  <title>Leaflet + Supabase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+  />
   <style>
-    html, body, #map {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      direction: rtl;
-      font-family: sans-serif;
+    #map { height: 100vh; margin:0; padding:0; }
+    .controls {
+      position: absolute; top: 10px; left: 10px; z-index: 1000;
+      background: white; padding: 10px; border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2); font-family: sans-serif;
     }
-
-    @media (max-width: 600px) {
-      .leaflet-control-container {
-        zoom: 1.5;
-      }
-    }
+    .controls input, .controls textarea { width: 200px; margin-bottom: 5px; }
+    #upload-box {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: white;
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }  
   </style>
 </head>
 <body>
-
-<div id="map"></div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
-<script>
-  window.onload = async function () {
-    // ✅ تغيير الاسم هنا لتفادي الخطأ
-    const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co'
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow'
-    const client = supabase.createClient(supabaseUrl, supabaseKey)
-
-    const map = L.map('map').setView([33.5, 36.3], 7)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
-
-    const drawnItems = new L.FeatureGroup()
-    map.addLayer(drawnItems)
-
+  <div id="upload-box" >
+    <input type="file" id="imageInput" accept="image/*"><br>
+    <textarea id="descriptionInput" rows="2"
+      placeholder="add attribute..."></textarea>
+  </div>
+  <div id="map"></div>
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <!-- Supabase UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    // 1) استخرج createClient من الـ global supabase (UMD build) :contentReference[oaicite:0]{index=0}
+    const { createClient } = window.supabase;
+    // 2) أنشئ عميلك الخاص باسم مختلف
+    const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow';
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    // 3) إعداد الخريطة
+    const map = L.map('map').setView([33.5, 36.3], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
     map.addControl(new L.Control.Draw({
-      edit: { featureGroup: drawnItems },
-      draw: {
-        polygon: true,
-        polyline: true,
-        rectangle: false,
-        circle: false,
-        marker: true
-      }
-    }))
-
-    // ✅ تحميل البيانات من Supabase
-    const { data, error } = await client.from('drawings').select('*')
-    if (error) {
-      console.error('خطأ في التحميل:', error)
-    } else {
-      data.forEach(d => {
-        const layer = L.geoJSON({
-          type: 'Feature',
-          geometry: d.geometry
-        })
-        layer.bindPopup(d.description || 'بدون وصف')
-        layer.addTo(drawnItems)
-      })
+      draw: { marker: true, polygon: false, polyline: false },
+      edit: { featureGroup: drawnItems, edit: true, remove: true }
+    }));
+    // 4) تحميل الرسومات
+    async function loadDrawings() {
+      const { data, error } = await supabaseClient
+        .from('drawings').select('*');
+      if (error) return console.error(' Data loading failed :', error.message);
+      data.forEach(item => {
+        const layer = L.geoJSON(item.geometry).getLayers()[0];
+        layer.feature = { id: item.id };
+        let popup = '';
+        if (item.image_url) popup += `<img src="${item.image_url}" width="200"><br>`;
+        if (item.description) popup += `<p>${item.description}</p>`;
+        if (popup) layer.bindPopup(popup);
+        drawnItems.addLayer(layer);
+      });
     }
-
-    // ✅ حفظ الرسم
-    map.on('draw:created', async function (e) {
-      const layer = e.layer
-      const geojson = layer.toGeoJSON()
-      const description = prompt('اكتب وصفاً لهذا الشكل:')
-      if (!description) return
-
-      const { error } = await client.from('drawings').insert([{
-        type: geojson.geometry.type,
-        geometry: geojson.geometry,
-        description
-      }])
-
-      if (error) {
-        alert('خطأ في الحفظ: ' + error.message)
-      } else {
-        drawnItems.addLayer(layer)
-        layer.bindPopup(description)
-        alert('تم الحفظ بنجاح!')
+    // 5) حفظ نقطة جديدة مع صورة ووصف
+    map.on('draw:created', async e => {
+      const layer = e.layer;
+      const geojson = layer.toGeoJSON();
+      const file = document.getElementById('imageInput').files[0];
+      const description = document.getElementById('descriptionInput').value || null;
+      let imageUrl = null;
+      if (file) {
+        const path = `point-${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabaseClient
+          .storage.from('images').upload(path, file);
+        if (upErr) { alert('Image upload failed  : '+upErr.message); return; }
+        imageUrl = supabaseClient.storage.from('images').getPublicUrl(path).data.publicUrl;
       }
-    })
-  }
-</script>
-
+      const { data, error } = await supabaseClient
+        .from('drawings')
+        .insert([{ geometry: geojson.geometry, type: geojson.geometry.type,
+                   image_url: imageUrl, description }])
+        .select();
+      if (error) { alert('Save failed: '+error.message); return; }
+      layer.feature = { id: data[0].id };
+      let popup = '';
+      if (imageUrl) popup += `<img src="${imageUrl}" width="200"><br>`;
+      if (description) popup += `<p>${description}</p>`;
+      if (popup) layer.bindPopup(popup);
+      drawnItems.addLayer(layer);
+      // إعادة تعيين الحقول
+      document.getElementById('imageInput').value = '';
+      document.getElementById('descriptionInput').value = '';
+    });
+    // 6) تعديل وحذف بنفس المنطق...
+    map.on('draw:edited', async e => {
+      e.layers.eachLayer(async layer => {
+        const id = layer.feature?.id; if (!id) return;
+        const geojson = layer.toGeoJSON();
+        const { error } = await supabaseClient
+          .from('drawings').update({ geometry: geojson.geometry })
+          .eq('id', id);
+        if (error) console.error('edit failed:', error.message);
+      });
+    });
+    map.on('draw:deleted', async e => {
+      e.layers.eachLayer(async layer => {
+        const id = layer.feature?.id; if (!id) return;
+        const { error } = await supabaseClient
+          .from('drawings').delete().eq('id', id);
+        if (error) console.error('delete failed:', error.message);
+      });
+    });
+    loadDrawings();
+  </script>
 </body>
 </html>
