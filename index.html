@@ -3,24 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Supabase</title>
+  <title>Supabase_1</title>
 
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
 
   <style>
-    body, html {
+    html, body, #map {
+      height: 100%;
       margin: 0;
       padding: 0;
-      height: 100%;
       direction: rtl;
       font-family: sans-serif;
-    }
-
-    #map {
-      height: 100vh;
-      width: 100%;
     }
 
     @media (max-width: 600px) {
@@ -34,86 +28,71 @@
 
 <div id="map"></div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-
-<!-- Supabase JS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <script>
-  // ✅ الخطوة 1: تهيئة Supabase
-  const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co'
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow'
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+  window.onload = async function () {
+    // ✅ تغيير الاسم هنا لتفادي الخطأ
+    const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co'
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow'
+    const client = supabase.createClient(supabaseUrl, supabaseKey)
 
-  // ✅ الخطوة 2: إنشاء الخريطة
-  const map = L.map('map').setView([33.5, 36.3], 7)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(map)
+    const map = L.map('map').setView([33.5, 36.3], 7)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
 
-  const drawnItems = new L.FeatureGroup()
-  map.addLayer(drawnItems)
+    const drawnItems = new L.FeatureGroup()
+    map.addLayer(drawnItems)
 
-  const drawControl = new L.Control.Draw({
-    edit: { featureGroup: drawnItems },
-    draw: {
-      polygon: true,
-      polyline: true,
-      marker: true,
-      rectangle: false,
-      circle: false
-    }
-  })
-  map.addControl(drawControl)
+    map.addControl(new L.Control.Draw({
+      edit: { featureGroup: drawnItems },
+      draw: {
+        polygon: true,
+        polyline: true,
+        rectangle: false,
+        circle: false,
+        marker: true
+      }
+    }))
 
-  // ✅ الخطوة 3: تحميل الرسومات من Supabase
-  async function loadDrawings() {
-    const { data, error } = await supabase
-      .from('drawings')
-      .select('*')
-
+    // ✅ تحميل البيانات من Supabase
+    const { data, error } = await client.from('drawings').select('*')
     if (error) {
-      console.error('خطأ في تحميل:', error)
-      return
+      console.error('خطأ في التحميل:', error)
+    } else {
+      data.forEach(d => {
+        const layer = L.geoJSON({
+          type: 'Feature',
+          geometry: d.geometry
+        })
+        layer.bindPopup(d.description || 'بدون وصف')
+        layer.addTo(drawnItems)
+      })
     }
 
-    data.forEach(d => {
-      const geoLayer = L.geoJSON({
-        type: 'Feature',
-        geometry: d.geometry
-      })
-      geoLayer.bindPopup(d.description || 'بدون وصف')
-      geoLayer.addTo(drawnItems)
+    // ✅ حفظ الرسم
+    map.on('draw:created', async function (e) {
+      const layer = e.layer
+      const geojson = layer.toGeoJSON()
+      const description = prompt('اكتب وصفاً لهذا الشكل:')
+      if (!description) return
+
+      const { error } = await client.from('drawings').insert([{
+        type: geojson.geometry.type,
+        geometry: geojson.geometry,
+        description
+      }])
+
+      if (error) {
+        alert('خطأ في الحفظ: ' + error.message)
+      } else {
+        drawnItems.addLayer(layer)
+        layer.bindPopup(description)
+        alert('تم الحفظ بنجاح!')
+      }
     })
   }
-
-  // ✅ الخطوة 4: عند الرسم - حفظ في Supabase
-  map.on('draw:created', async function (e) {
-    const layer = e.layer
-    const geojson = layer.toGeoJSON()
-    const type = geojson.geometry.type
-    const geometry = geojson.geometry
-    const description = prompt('اكتب وصفاً لهذا الشكل:')
-
-    if (!description) return
-
-    const { error } = await supabase
-      .from('drawings')
-      .insert([{ type, geometry, description }])
-
-    if (error) {
-      alert('فشل الحفظ: ' + error.message)
-    } else {
-      drawnItems.addLayer(layer)
-      layer.bindPopup(description)
-      alert('تم الحفظ بنجاح!')
-    }
-  })
-
-  // ✅ تحميل البيانات أول ما تفتح الصفحة
-  loadDrawings()
 </script>
 
 </body>
