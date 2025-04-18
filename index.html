@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>رسم وتخزين على الخريطة</title>
+  <title>Supabase</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -23,16 +23,6 @@
       width: 100%;
     }
 
-    /* تكبير الأدوات للجوال */
-    .leaflet-control {
-      font-size: 16px !important;
-    }
-
-    .leaflet-draw-toolbar a {
-      width: 36px !important;
-      height: 36px !important;
-    }
-
     @media (max-width: 600px) {
       .leaflet-control-container {
         zoom: 1.5;
@@ -48,23 +38,21 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
-<!-- Supabase -->
+<!-- Supabase JS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
 <script>
-  // بيانات مشروعك في Supabase
+  // ✅ الخطوة 1: تهيئة Supabase
   const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co'
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow'
-   // من Supabase > Settings > API
   const supabase = supabase.createClient(supabaseUrl, supabaseKey)
 
-  // إنشاء الخريطة
+  // ✅ الخطوة 2: إنشاء الخريطة
   const map = L.map('map').setView([33.5, 36.3], 7)
-
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+    attribution: '© OpenStreetMap'
   }).addTo(map)
 
-  // مجموعة الرسومات
   const drawnItems = new L.FeatureGroup()
   map.addLayer(drawnItems)
 
@@ -73,14 +61,35 @@
     draw: {
       polygon: true,
       polyline: true,
+      marker: true,
       rectangle: false,
-      circle: false,
-      marker: true
+      circle: false
     }
   })
   map.addControl(drawControl)
 
-  // حفظ الرسم في Supabase
+  // ✅ الخطوة 3: تحميل الرسومات من Supabase
+  async function loadDrawings() {
+    const { data, error } = await supabase
+      .from('drawings')
+      .select('*')
+
+    if (error) {
+      console.error('خطأ في تحميل:', error)
+      return
+    }
+
+    data.forEach(d => {
+      const geoLayer = L.geoJSON({
+        type: 'Feature',
+        geometry: d.geometry
+      })
+      geoLayer.bindPopup(d.description || 'بدون وصف')
+      geoLayer.addTo(drawnItems)
+    })
+  }
+
+  // ✅ الخطوة 4: عند الرسم - حفظ في Supabase
   map.on('draw:created', async function (e) {
     const layer = e.layer
     const geojson = layer.toGeoJSON()
@@ -103,27 +112,7 @@
     }
   })
 
-  // تحميل الرسومات عند فتح الصفحة
-  async function loadDrawings() {
-    const { data, error } = await supabase
-      .from('drawings')
-      .select('*')
-
-    if (error) {
-      alert('خطأ في تحميل البيانات')
-      return
-    }
-
-    data.forEach(d => {
-      const geoLayer = L.geoJSON({
-        type: 'Feature',
-        geometry: d.geometry
-      })
-      geoLayer.bindPopup(d.description || 'بدون وصف')
-      geoLayer.addTo(drawnItems)
-    })
-  }
-
+  // ✅ تحميل البيانات أول ما تفتح الصفحة
   loadDrawings()
 </script>
 
