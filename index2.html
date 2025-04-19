@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>Leaflet + Supabase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+  />
+  <style>
+    #map { height: 100vh; margin:0; padding:0; }
+    .controls {
+      position: absolute; top: 10px; left: 10px; z-index: 1000;
+      background: white; padding: 10px; border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2); font-family: sans-serif;
+    }
+    .controls input, .controls textarea { width: 200px; margin-bottom: 5px; }
+    #upload-box {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: white;
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }  
+  </style>
+</head>
+<body>
+  <div id="upload-box" >
+    <input type="file" id="imageInput" accept="image/*"><br>
+    <textarea id="descriptionInput" rows="2"
+      placeholder="add attribute..."></textarea>
+  </div>
+  <div id="map"></div>
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <!-- Supabase UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    // 1) استخرج createClient من الـ global supabase (UMD build) :contentReference[oaicite:0]{index=0}
+    const { createClient } = window.supabase;
+    // 2) أنشئ عميلك الخاص باسم مختلف
+    const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow';
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+osmAttrib = '',
+osm = L.tileLayer(osmUrl, { attribution: osmAttrib, 
+minZoom: 1,
+maxZoom: 28,
+minNativeZoom: 0,
+maxNativeZoom: 19 }),
+google= L.tileLayer('http://www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}', {
+opacity: 1.0,
+attribution: '',
+minZoom: 2,
+maxZoom: 28,
+minNativeZoom: 2,
+maxNativeZoom: 19
+}),
+GoogleTerrainHybrid= L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+opacity: 1.0,
+attribution: '',
+minZoom: 2,
+maxZoom: 19,
+minNativeZoom: 2,
+maxNativeZoom: 19
+}),
+topo = L.tileLayer('http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+opacity: 1.0,
+attribution: '',
+minZoom: 1,
+maxZoom: 28,
+minNativeZoom: 0,
+maxNativeZoom: 19
+});
+ map = new L.Map('map', { center: new L.LatLng(10.014725,53.531329), zoom: 8 }),/
+drawnItems = L.featureGroup().addTo(map);
+wmsLayer = L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+layers: 'SRTM30-Colored-Hillshade'
+});
+L.control.layers({
+    'Osm': osm,
+    'GoogleTerrain':GoogleTerrainHybrid.addTo(map),
+    "Google": L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        opacity: 1.0,
+        attribution: '',
+        minZoom: 2,
+        maxZoom: 28,
+        minNativeZoom: 2,
+        maxNativeZoom: 19
+    }),
+    'Topo':topo,
+    'Hillshade': wmsLayer,
+}, { 'drawlayer': drawnItems }, { position: 'topright', collapsed: true }).addTo(map);
+map.addControl(new L.Control.Draw({
+    edit: {
+        featureGroup: drawnItems,
+        poly: {
+            allowIntersection: false
+        }
+    },
+    draw: {
+        polygon: {
+            allowIntersection: false,
+            showArea: true
+        }
+    }
+}));
+ // 4) تحميل الرسومات
+    async function loadDrawings() {
+      const { data, error } = await supabaseClient
+        .from('drawings').select('*');
+      if (error) return console.error(' Data loading failed :', error.message);
+      data.forEach(item => {
+        const layer = L.geoJSON(item.geometry).getLayers()[0];
+        layer.feature = { id: item.id };
+        let popup = '';
+        if (item.image_url) popup += `<img src="${item.image_url}" width="200"><br>`;
+        if (item.description) popup += `<p>${item.description}</p>`;
+        if (popup) layer.bindPopup(popup);
+        drawnItems.addLayer(layer);
+      });
+    }
+    // 5) حفظ نقطة جديدة مع صورة ووصف
+    map.on('draw:created', async e => {
+      const layer = e.layer;
+      const geojson = layer.toGeoJSON();
+      const file = document.getElementById('imageInput').files[0];
+      const description = document.getElementById('descriptionInput').value || null;
+      let imageUrl = null;
+      if (file) {
+        const path = `point-${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabaseClient
+          .storage.from('images').upload(path, file);
+        if (upErr) { alert('Image upload failed  : '+upErr.message); return; }
+        imageUrl = supabaseClient.storage.from('images').getPublicUrl(path).data.publicUrl;
+      }
+      const { data, error } = await supabaseClient
+        .from('drawings')
+        .insert([{ geometry: geojson.geometry, type: geojson.geometry.type,
+                   image_url: imageUrl, description }])
+        .select();
+      if (error) { alert('Save failed: '+error.message); return; }
+      layer.feature = { id: data[0].id };
+      let popup = '';
+      if (imageUrl) popup += `<img src="${imageUrl}" width="200"><br>`;
+      if (description) popup += `<p>${description}</p>`;
+      if (popup) layer.bindPopup(popup);
+      drawnItems.addLayer(layer);
+      // إعادة تعيين الحقول
+      document.getElementById('imageInput').value = '';
+      document.getElementById('descriptionInput').value = '';
+    });
+    // 6) تعديل وحذف بنفس المنطق...
+    map.on('draw:edited', async e => {
+      e.layers.eachLayer(async layer => {
+        const id = layer.feature?.id; if (!id) return;
+        const geojson = layer.toGeoJSON();
+        const { error } = await supabaseClient
+          .from('drawings').update({ geometry: geojson.geometry })
+          .eq('id', id);
+        if (error) console.error('edit failed:', error.message);
+      });
+    });
+    map.on('draw:deleted', async e => {
+      e.layers.eachLayer(async layer => {
+        const id = layer.feature?.id; if (!id) return;
+        const { error } = await supabaseClient
+          .from('drawings').delete().eq('id', id);
+        if (error) console.error('delete failed:', error.message);
+      });
+    });  
+    loadDrawings();
+  </script>
+</body>
+</html>
