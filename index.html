@@ -179,7 +179,37 @@ map.addControl(new L.Control.Draw({
           .from('drawings').delete().eq('id', id);
         if (error) console.error('delete failed:', error.message);
       });
-    });  
+    }); 
+    // 22.04.2025
+    function getCustomMarker(latlng) {
+  return L.circleMarker(latlng, {
+    radius: 8,
+    color: 'black',         // الإطار
+    weight: 2,
+    fillColor: 'red',       // التعبئة
+    fillOpacity: 1
+  });
+}
+function getGeometryStyle(feature) {
+  return {
+    color: 'black',           // الحدود
+    weight: 2,
+    fillColor: 'red',
+    fillOpacity: 0.4          // شفاف للمضلعات
+  };
+}
+data.forEach(item => {
+  const geoLayer = L.geoJSON(item.geometry, {
+    pointToLayer: (feature, latlng) => getCustomMarker(latlng),
+    style: getGeometryStyle
+  });
+
+  geoLayer.eachLayer(layer => {
+    layer.feature = { id: item.id };
+    drawnItems.addLayer(layer);
+  });
+});
+//
     loadDrawings();
   </script>
 </body>
