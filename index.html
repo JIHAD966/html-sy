@@ -180,36 +180,35 @@ map.addControl(new L.Control.Draw({
         if (error) console.error('delete failed:', error.message);
       });
     }); 
-    // 22.04.2025
-    function getCustomMarker(latlng) {
-  return L.circleMarker(latlng, {
-    radius: 8,
-    color: 'black',         // الإطار
-    weight: 2,
-    fillColor: 'red',       // التعبئة
-    fillOpacity: 1
-  });
-}
-function getGeometryStyle(feature) {
-  return {
-    color: 'black',           // الحدود
-    weight: 2,
-    fillColor: 'red',
-    fillOpacity: 0.4          // شفاف للمضلعات
-  };
-}
-data.forEach(item => {
-  const geoLayer = L.geoJSON(item.geometry, {
-    pointToLayer: (feature, latlng) => getCustomMarker(latlng),
-    style: getGeometryStyle
-  });
+//22.04.2025
+    map.on('draw:created', function (e) {
+  const layer = e.layer;
 
-  geoLayer.eachLayer(layer => {
-    layer.feature = { id: item.id };
-    drawnItems.addLayer(layer);
-  });
+  // تخصيص الستايل حسب نوع الشكل
+  if (layer instanceof L.CircleMarker) {
+    layer.setStyle({
+      radius: 8,
+      color: 'black',
+      weight: 2,
+      fillColor: 'red',
+      fillOpacity: 1
+    });
+  } else {
+    layer.setStyle({
+      color: 'black',
+      weight: 2,
+      fillColor: 'red',
+      fillOpacity: 0.4
+    });
+  }
+
+  // إضافة إلى المتغير المؤقت (في حال كنت تحفظه لاحقًا)
+  tempLayer = layer;
+
+  // عرض الفورم مثلاً أو إضافة مباشرة
+  document.getElementById('form-box').style.display = 'block';
 });
-//
+
     loadDrawings();
   </script>
 </body>
