@@ -204,54 +204,6 @@ color: blue;
 
         }),
 
-        mobile_atlas = L.tileLayer('https://tile.thunderforest.com/mobile-atlas/{z}/{x}/{y}.png?apikey=af071baf070341ad86b5100adeec252b', {
-
-            opacity: 1.0,
-
-            attribution: '',
-
-            minZoom: 2,
-
-            maxZoom: 19,
-
-            minNativeZoom: 2,
-
-            maxNativeZoom: 19
-
-        }),
-
-       hikebike = L.tileLayer('https://tiles.wmflabs.org/hikebike/{z}/{x}/{y}.png', {
-
-            opacity: 1.0,
-
-            attribution: '',
-
-            minZoom: 2,
-
-            maxZoom: 19,
-
-            minNativeZoom: 2,
-
-            maxNativeZoom: 19
-
-        }), 
-
-        outdoors = L.tileLayer('https://{s}.tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=af071baf070341ad86b5100adeec252b', {
-
-            opacity: 1.0,
-
-            attribution: '',
-
-            minZoom: 1,
-
-            maxZoom: 28,
-
-            minNativeZoom: 0,
-
-            maxNativeZoom: 19
-
-        }), 
-
         Thunderforest = L.tileLayer('https://tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=af071baf070341ad86b5100adeec252b', {
 
             opacity: 1.0,
@@ -305,14 +257,6 @@ color: blue;
         'Osm': osm,
 
         'GoogleTerrain':GoogleTerrainHybrid.addTo(map),
-
-        'Hikebike':hikebike,
-
-        'Outdoors':outdoors,
-
-        'Transport':Thunderforest,
-
-        'Mobile Atlas':mobile_atlas,
 
         "Google": L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
 
@@ -718,7 +662,6 @@ var zn =lonInput.value;
         var gms = Number(g)+ Number(m)+ Number(s);
 
     latInput.value=gms.toFixed(7);
-
     };
 
     function slat(){
@@ -732,9 +675,7 @@ var zn =lonInput.value;
         var gms = Number(g)+ Number(m)+ Number(s);
 
     latInput.value=gms.toFixed(7);
-
         
-
     };
 
     function glon(){
@@ -855,7 +796,6 @@ var zn =lonInput.value;
 
     var nu = NInput.value;
 
-
     var transUtm =proj4(proj4('EPSG:32637'),proj4('EPSG:4326'),[eu, nu]);
 
     //var trans =proj4(proj4('EPSG:4326'),proj4('EPSG:42'),[x, y]);
@@ -904,9 +844,5 @@ function JihadStyle(feature) {
     };
   }
         </script>
-
 </body>
-
-
-
 </html>
