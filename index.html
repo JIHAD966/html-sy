@@ -45,6 +45,10 @@ th, td {
   padding: 3px;
 }
 tr:nth-child(even) {background-color: #eeeeee;}
+#btnInfo{
+font-size: 14px;
+color: blue;
+}
     </style>
 
     <link rel="stylesheet" href="js/leaflet.css" />
@@ -115,7 +119,7 @@ tr:nth-child(even) {background-color: #eeeeee;}
   </select>
 
   <button id="convert" title=" Save Shapes As geojson" > Export to GeoJSON </button> 
-
+  <label id = "btnInfo"> </label>
   <hr>
 
   <div class="ex1" id ="tab">
@@ -282,7 +286,13 @@ tr:nth-child(even) {background-color: #eeeeee;}
 
              map = new L.Map('map', { center: new L.LatLng(35.312262, 38.214633), zoom: 7 }),
 
+             map.createPane('drawnItems');
+        map.getPane('drawnItems').style.zIndex = 1000;
+
+       // var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
             drawnItems = L.featureGroup().addTo(map);
+            DragDropItem = L.featureGroup().addTo(map);
+          
 
   wmsLayer = L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
 
@@ -324,7 +334,8 @@ tr:nth-child(even) {background-color: #eeeeee;}
 
         'Hillshade': wmsLayer,
 
-    }, { 'drawlayer': drawnItems }, { position: 'topright', collapsed: true }).addTo(map);
+    }, { 'Drawlayer': drawnItems ,
+"Imported<hr>": DragDropItem }, { position: 'topright', collapsed: true }).addTo(map);
 
     map.addControl(new L.Control.Draw({
 
@@ -883,7 +894,15 @@ var zn =lonInput.value;
 
     lonInput.value=lon;
 }
-
+function JihadStyle(feature) {
+    return {
+      fillColor: 'blue',
+      weight: 1.5,
+      opacity: 1,
+      color: 'black',
+      fillOpacity: 0.1
+    };
+  }
         </script>
 
 </body>
