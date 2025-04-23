@@ -1,188 +1,893 @@
 <!DOCTYPE html>
-<html lang="ar">
+
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Leaflet + Supabase</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
-  />
-  <style>
-    #map { height: 100vh; margin:0; padding:0; }
-    .controls {
-      position: absolute; top: 10px; left: 10px; z-index: 1000;
-      background: white; padding: 10px; border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2); font-family: sans-serif;
+    <meta charset="UTF-8">
+    <title>Jihad Alloush</title>
+    <style type="text/css">
+    #map{
+        height: 850px;
+        width: 100%;
     }
-    .controls input, .controls textarea { width: 200px; margin-bottom: 5px; }
-    #upload-box {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 1001;
-    background: white;
-    padding: 8px 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  }  
-  </style>
-</head>
-<body>
-  <div id="upload-box" >
-    <input type="file" id="imageInput" accept="image/*"><br>
-    <textarea id="descriptionInput" rows="2"
-      placeholder="add attribute..."></textarea>
-  </div>
-  <div id="map"></div>
-  <!-- Leaflet -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-  <!-- Supabase UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script>
-    // 1) استخرج createClient من الـ global supabase (UMD build) :contentReference[oaicite:0]{index=0}
-    const { createClient } = window.supabase;
-    // 2) أنشئ عميلك الخاص باسم مختلف
-    const supabaseUrl = 'https://qnwgbgpdvntncqcxgtpn.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFud2diZ3Bkdm50bmNxY3hndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5OTc4OTUsImV4cCI6MjA2MDU3Mzg5NX0.K-ctLeNltlnZZWbLAccL4wAJvpXcdospGe83QvnT1ow';
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
-    var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-osmAttrib = '',
-osm = L.tileLayer(osmUrl, { attribution: osmAttrib, 
-minZoom: 1,
-maxZoom: 28,
-minNativeZoom: 0,
-maxNativeZoom: 19 }),
-google= L.tileLayer('http://www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}', {
-opacity: 1.0,
-attribution: '',
-minZoom: 2,
-maxZoom: 28,
-minNativeZoom: 2,
-maxNativeZoom: 19
-}),
-GoogleTerrainHybrid= L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
-opacity: 1.0,
-attribution: '',
-minZoom: 2,
-maxZoom: 19,
-minNativeZoom: 2,
-maxNativeZoom: 19
-}),
-
-topo = L.tileLayer('http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-opacity: 1.0,
-attribution: '',
-minZoom: 1,
-maxZoom: 28,
-minNativeZoom: 0,
-maxNativeZoom: 19
-});
- map = new L.Map('map', { center: new L.LatLng(53.531329,10.014725), zoom: 10 }),
-drawnItems = L.featureGroup().addTo(map);
-wmsLayer = L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
-layers: 'SRTM30-Colored-Hillshade'
-});
-L.control.layers({
-    'Osm': osm,
-    'GoogleTerrain':GoogleTerrainHybrid.addTo(map),
-    "Google": L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-        opacity: 1.0,
-        attribution: '',
-        minZoom: 2,
-        maxZoom: 28,
-        minNativeZoom: 2,
-        maxNativeZoom: 19
-    }),
-    'Topo':topo,
-    'Hillshade': wmsLayer,
-}, { 'drawlayer': drawnItems }, { position: 'topright', collapsed: true }).addTo(map);
-map.addControl(new L.Control.Draw({
-    edit: {
-        featureGroup: drawnItems,
-        poly: {
-            allowIntersection: false
+    table {
+            width: 300px;
         }
-    },
-    draw: {
-        polygon: {
-            allowIntersection: false,
-            showArea: true
+        table, th, td {
+            border: solid 1px #DDD;
+            border-collapse: collapse;
+            padding: 2px 3px;
+            text-align: center;
         }
-    }
-}));
- // 4) تحميل الرسومات
-    async function loadDrawings() {
-      const { data, error } = await supabaseClient
-        .from('drawings').select('*');
-      if (error) return console.error(' Data loading failed :', error.message);
-      data.forEach(item => {
-        const layer = L.geoJSON(item.geometry).getLayers()[0];
-        layer.feature = { id: item.id };
-        let popup = '';
-        if (item.image_url) popup += `<img src="${item.image_url}" width="200"><br>`;
-        if (item.description) popup += `<p>${item.description}</p>`;
-        if (popup) layer.bindPopup(popup);
-        drawnItems.addLayer(layer);
-      });
-    }
-    // 5) حفظ نقطة جديدة مع صورة ووصف
-    map.on('draw:created', async e => {
-      const layer = e.layer;
-      const geojson = layer.toGeoJSON();
-      const file = document.getElementById('imageInput').files[0];
-      const description = document.getElementById('descriptionInput').value || null;
-      let imageUrl = null;
-      if (file) {
-        const path = `point-${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabaseClient
-          .storage.from('images').upload(path, file);
-        if (upErr) { alert('Image upload failed  : '+upErr.message); return; }
-        imageUrl = supabaseClient.storage.from('images').getPublicUrl(path).data.publicUrl;
+div.ex1 { 
+    width: 100%;
+    height: 200px;
+    overflow: scroll;
+  }
+.hoverTable{
+          width:100%;       
       }
-      const { data, error } = await supabaseClient
-        .from('drawings')
-        .insert([{ geometry: geojson.geometry, type: geojson.geometry.type,
-                   image_url: imageUrl, description }])
-        .select();
-      if (error) { alert('Save failed: '+error.message); return; }
-      layer.feature = { id: data[0].id };
-      let popup = '';
-      if (imageUrl) popup += `<img src="${imageUrl}" width="200"><br>`;
-      if (description) popup += `<p>${description}</p>`;
-      if (popup) layer.bindPopup(popup);
-      drawnItems.addLayer(layer);
-      // إعادة تعيين الحقول
-      document.getElementById('imageInput').value = '';
-      document.getElementById('descriptionInput').value = '';
-    });
-    // 6) تعديل وحذف بنفس المنطق...
-    map.on('draw:edited', async e => {
-      e.layers.eachLayer(async layer => {
-        const id = layer.feature?.id; if (!id) return;
-        const geojson = layer.toGeoJSON();
-        const { error } = await supabaseClient
-          .from('drawings').update({ geometry: geojson.geometry })
-          .eq('id', id);
-        if (error) console.error('edit failed:', error.message);
-      });
-    });
-    map.on('draw:deleted', async e => {
-      e.layers.eachLayer(async layer => {
-        const id = layer.feature?.id; if (!id) return;
-        const { error } = await supabaseClient
-          .from('drawings').delete().eq('id', id);
-        if (error) console.error('delete failed:', error.message);
-      });
-    }); 
+      .hoverTable td{ 
+          padding:7px; border:#0d0d0d 1px solid;
+      }
+      .hoverTable tr{
+          background: white;
+      }
+      .hoverTable tr:hover {
+            background-color: #E5FFCC; cursor: pointer
+      }
+      #myTable {
+        border-collapse: collapse;
+        border: 1px solid rgb(145, 140, 140);
+        font-size: 15px;
+    }
+th, td {
+  text-align: left;
+  padding: 3px;
+}
+tr:nth-child(even) {background-color: #eeeeee;}
+    </style>
+
+    <link rel="stylesheet" href="js/leaflet.css" />
+
+    <link rel="stylesheet" href="css/buttons.dataTables.min.css">
+
+    <link rel="stylesheet" href="css/jquery.dataTables.min.css">
+
+    <script src="js/leaflet.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.12/leaflet.draw.css"/>
+
+    <link rel="stylesheet" href="js/leaflet-control-geocoder.Geocoder.css">
+
+    <link rel="stylesheet" href="js/leaflet-measure.css">
+
+    <script src="js/leaflet-measure.js"></script>
+
+    <script src="js/leaflet-control-geocoder.Geocoder.js"></script> 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.12/leaflet.draw.js"></script>
+
+    <script src="js/FileSaver.js"></script>
+
+    <script src="js/proj4.js"></script>
+
+</head>
+
+<body>
+   
+
+     <div id="map"></div>
+
+    <div id="result"></div><hr>
+ 
+    Latitude: <input type="text" onKeyUp="LatngToXy()" style="width: 80px ; text-align: center"id="latInput" style="background-blend-mode:difference;">
+
+    DMS °<input type="text" onKeyUp="glat()" style="width: 20px ; text-align: center"id="glatInput">
+
+    '<input type="text" onKeyUp="mlat()" style="width: 20px ; text-align: center"id="mlatInput">
+
+    "<input type="text" onKeyUp="slat()" style="width: 40px ; text-align: center"id="slatInput">
+
+    Longitude: <input type="text" onKeyUp="LatngToXy()" style="width: 80px ; text-align: center"; id="lonInput" >
+
+    DMS °<input id="glonInput" type="text" onKeyUp="glon()" style="width: 20px ; ">
+
+    '<input id="mlonInput" type="text" onKeyUp="mlon()" style="width: 20px ; ">
+
+    "<input id="slonInput"type="text" onKeyUp="slon()" style="width: 40px ;">
+
+   X-Lam:<input type="text" onKeyUp="xyToLatng()" style="width: 80px ; text-align: center"id="xInput" style="background-blend-mode:difference;">
+
+   Y-Lam: <input type="text" onKeyUp="xyToLatng()" style="width: 80px ; text-align: center; right: 250px"; id="yInput" >
+
+   E-Utm:<input type="text" onKeyUp="LatngToE()" onchange="LatngToE()" style="width: 80px ; text-align: center"id="EInput" style="background-blend-mode:difference;">
+
+   N-Utm: <input type="text" onKeyUp="LatngToN()" onchange="LatngToN()"  style="width: 80px ; text-align: center; right: 250px"; id="NInput" >
+
+   Name: <input type="text" id="nameInput"><input type="button" onclick = addMarker() title="Add Marker into Table" value="Marker">
+
+   <input type="button" value="PDF" 
+
+   id="btPrint" title="Save Table As PDF" onclick="createPDF()" />
+
+   <button title="Save Table As Excel" onclick="exportTableToExcel('myTable', 'members-data')">Excel</button>
+
+  </select>
+
+  <button id="convert" title=" Save Shapes As geojson" > Export to GeoJSON </button> 
+
+  <hr>
+
+  <div class="ex1" id ="tab">
+
+      <div id="tab">
+
+  <table id="myTable" class="hoverTable">
+
+    <tr>
+
+      <th>Name</th>
+
+      <th>Lat (DD)</th>
+
+      <th>Lon (DD)</th>
+
+      <th>Lat (DMS)</th>
+
+      <th>Lon (DMS)</th>
+
+      <th>X-Lam</th> 
+
+      <th>Y-Lam</th>
+
+      <th>E-utm</th> 
+
+      <th>Y-utm</th>
+
+    </tr>
+
+</table>
+
+</div>
+
+</div>
+
+    <script>      
+
+    var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+
+            osmAttrib = '',
+
+            osm = L.tileLayer(osmUrl, { attribution: osmAttrib, 
+
+            minZoom: 1,
+
+            maxZoom: 28,
+
+            minNativeZoom: 0,
+
+            maxNativeZoom: 19 }),
+
+     google= L.tileLayer('http://www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}', {
+
+            opacity: 1.0,
+
+            attribution: '',
+
+            minZoom: 2,
+
+            maxZoom: 28,
+
+            minNativeZoom: 2,
+
+            maxNativeZoom: 19
+
+        }),
+
+        GoogleTerrainHybrid= L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+
+            opacity: 1.0,
+
+            attribution: '',
+
+            minZoom: 2,
+
+            maxZoom: 19,
+
+            minNativeZoom: 2,
+
+            maxNativeZoom: 19
+
+        }),
+
+        mobile_atlas = L.tileLayer('https://tile.thunderforest.com/mobile-atlas/{z}/{x}/{y}.png?apikey=af071baf070341ad86b5100adeec252b', {
+
+            opacity: 1.0,
+
+            attribution: '',
+
+            minZoom: 2,
+
+            maxZoom: 19,
+
+            minNativeZoom: 2,
+
+            maxNativeZoom: 19
+
+        }),
+
+       hikebike = L.tileLayer('https://tiles.wmflabs.org/hikebike/{z}/{x}/{y}.png', {
+
+            opacity: 1.0,
+
+            attribution: '',
+
+            minZoom: 2,
+
+            maxZoom: 19,
+
+            minNativeZoom: 2,
+
+            maxNativeZoom: 19
+
+        }), 
+
+        outdoors = L.tileLayer('https://{s}.tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=af071baf070341ad86b5100adeec252b', {
+
+            opacity: 1.0,
+
+            attribution: '',
+
+            minZoom: 1,
+
+            maxZoom: 28,
+
+            minNativeZoom: 0,
+
+            maxNativeZoom: 19
+
+        }), 
+
+        Thunderforest = L.tileLayer('https://tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=af071baf070341ad86b5100adeec252b', {
+
+            opacity: 1.0,
+
+            attribution: '',
+
+            minZoom: 2,
+
+            maxZoom: 19,
+
+            minNativeZoom: 2,
+
+            maxNativeZoom: 19
+
+        }),  
+
+   topo = L.tileLayer('http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+
+            opacity: 1.0,
+
+            attribution: '',
+
+            minZoom: 1,
+
+            maxZoom: 28,
+
+            minNativeZoom: 0,
+
+            maxNativeZoom: 19
+
+        });
+
+             map = new L.Map('map', { center: new L.LatLng(35.312262, 38.214633), zoom: 7 }),
+
+            drawnItems = L.featureGroup().addTo(map);
+
+  wmsLayer = L.tileLayer.wms('http://ows.mundialis.de/services/service?', {
+
+    layers: 'SRTM30-Colored-Hillshade'
+
+});
+
+    L.control.layers({
+
+        'Osm': osm,
+
+        'GoogleTerrain':GoogleTerrainHybrid.addTo(map),
+
+        'Hikebike':hikebike,
+
+        'Outdoors':outdoors,
+
+        'Transport':Thunderforest,
+
+        'Mobile Atlas':mobile_atlas,
+
+        "Google": L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+
+            opacity: 1.0,
+
+            attribution: '',
+
+            minZoom: 2,
+
+            maxZoom: 28,
+
+            minNativeZoom: 2,
+
+            maxNativeZoom: 19
+
+        }),
+
+        'Topo':topo,
+
+        'Hillshade': wmsLayer,
+
+    }, { 'drawlayer': drawnItems }, { position: 'topright', collapsed: true }).addTo(map);
+
+    map.addControl(new L.Control.Draw({
+
+        edit: {
+
+            featureGroup: drawnItems,
+
+            poly: {
+
+                allowIntersection: false
+
+            }
+
+        },
+
+        draw: {
+
+            polygon: {
+
+                allowIntersection: false,
+
+                showArea: true
+
+            }
+
+        }
+
+    }));
+
+    var osmGeocoder = new L.Control.Geocoder({
+
+            collapsed: true,
+
+            position: 'topleft',
+
+            text: 'Search',
+
+            icon:'js/images/geocoder.png',
+
+            title: 'Testing'
+
+        }).addTo(map);
+
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+
+        .className += ' fa fa-search';
+
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+
+        .title += 'Search for a place';
+
+    map.on(L.Draw.Event.CREATED, function (event) {
+
+        var layer = event.layer;
 
 
-    loadDrawings();
-  </script>
+
+        drawnItems.addLayer(layer);
+
+    });
+        map.attributionControl.setPrefix('');
+
+            L.control.scale().addTo(map);
+
+        var measureControl = new L.Control.Measure({
+
+            position: 'topleft',
+
+            primaryLengthUnit: 'meters',
+
+            secondaryLengthUnit: 'kilometers',
+
+            primaryAreaUnit: 'sqmeters',
+
+            secondaryAreaUnit: 'hectares'
+
+        });
+
+        measureControl.addTo(map);
+
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+
+        .innerHTML = 't';
+
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+
+        .className += ' fas fa-ruler';
+
+        var bounds_group = new L.featureGroup([]);
+
+        function setBounds() {
+
+            if (bounds_group.getLayers().length) {
+
+                map.setView([35.312262, 38.214633], 6.5);
+
+            }
+
+        }
+     map.on('draw:created', function(event){
+
+var layer = event.layer,
+
+feature = layer.feature=layer.feature || {};
+
+feature.type =feature.type || "Feature";
+
+var props = feature.properties =feature.properties || {};
+
+drawnItems.addLayer(layer);
+
+     });
+
+     document.getElementById("convert").addEventListener("click", function(){
+
+         var blob = new Blob([JSON.stringify(drawnItems.toGeoJSON())],
+
+                { type: "text/plain;charset=utf-8" });
+
+            saveAs(blob, "drawlayer.geojson");
+
+     });
+
+    </script>
+
+    <script>
+
+  var div = document.createElement('div');
+
+  div.id = 'coordsDiv';
+
+  div.style.position='absolute';
+
+  div.style.bottom='0';
+
+  div.style.right='0';
+
+  div.style.zIndex='999';
+
+  div.style.backgroundColor='#FEFFF4';
+
+  document.getElementById('map').appendChild(div);
+
+  proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
+
+  proj4.defs("EPSG:42","+proj=laea +lat_0=34.65 +lon_0=37.35 +x_0=300000 +y_0=300000 +ellps=clrk80 +units=m +no_defs");
+
+  map.on('mousemove', function(e){
+
+    var lat = e.latlng.lat;
+
+    var lon = e.latlng.lng;
+
+    var trans =proj4(proj4('EPSG:4326'),proj4('EPSG:42'),[lon, lat]);
+
+    var x=trans[0].toFixed(2);
+
+    var y = trans[1].toFixed(2);
+
+    document.getElementById('coordsDiv').innerHTML ='<b style="font-size:15px"><u style="color:blue">WGS 84: </u> ' + lat.toFixed(6) + ',' + lon.toFixed(6) +' :<u style="color:blue">Lambert:</u> '+x +','+ y+'</b>' ;
+
+  });
+  var div = document.createElement('div'); 
+
+    </script>
+
+    <script>
+
+         var layerGroup2 =L.layerGroup().addTo(map);
+
+var popup = L.popup();
+
+        function onMapClick(e) {
+
+    popup.setLatLng(e.latlng)
+
+        .setContent(e.latlng.toString())
+
+        latInput.value=(e.latlng.lat.toFixed(6));
+
+        lonInput.value=(e.latlng.lng.toFixed(6));
+
+  proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
+
+  proj4.defs("EPSG:42","+proj=laea +lat_0=34.65 +lon_0=37.35 +x_0=300000 +y_0=300000 +ellps=clrk80 +units=m +no_defs");
+
+  proj4.defs("EPSG:32637","+proj=utm +zone=37 +datum=WGS84 +units=m +no_defs");
+
+    var lat = e.latlng.lat;
+
+    var lon = e.latlng.lng;
+
+    var trans =proj4(proj4('EPSG:4326'),proj4('EPSG:42'),[lon, lat]);
+
+    var transUtm =proj4(proj4('EPSG:4326'),proj4('EPSG:32637'),[lon, lat]);
+
+    var x=trans[0].toFixed(2);
+
+    var y = trans[1].toFixed(2);
+
+    var eu=transUtm[0].toFixed(2);
+
+    var nu = transUtm[1].toFixed(2);
+
+    xInput.value=x;
+
+    yInput.value=y;
+
+    EInput.value=eu;
+
+    NInput.value=nu;
+
+}
+map.on('click', onMapClick);
+
+    </script>
+
+    <script src ="js/index.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <script>
+
+        function xyToLatng(){
+
+             proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
+
+             proj4.defs("EPSG:42","+proj=laea +lat_0=34.65 +lon_0=37.35 +x_0=300000 +y_0=300000 +ellps=clrk80 +units=m +no_defs");
+
+             proj4.defs("EPSG:32637","+proj=utm +zone=37 +datum=WGS84 +units=m +no_defs");
+
+    var x = xInput.value;
+
+    var y = yInput.value;
+
+    var trans =proj4(proj4('EPSG:42'),proj4('EPSG:4326'),[x, y]);
+
+    var lon=trans[0].toFixed(7);
+
+    var lat = trans[1].toFixed(7);
+
+    latInput.value=lat;
+
+    lonInput.value=lon; 
+
+    var transUtm =proj4(proj4('EPSG:4326'),proj4('EPSG:32637'),[lon, lat]);
+
+    var eu=transUtm[0].toFixed(2);
+
+    var nu = transUtm[1].toFixed(2);  
+
+    EInput.value=eu;
+
+    NInput.value=nu;
+
+      //------------------------------------------------GMS lat
+
+      var z =latInput.value;
+
+    var g =parseInt(latInput.value);
+
+    var m =parseInt((latInput.value -parseInt(latInput.value))*60);
+
+    var s =((z-g-(m/60))*3600).toFixed(3);
+
+    glatInput.value =g;
+
+    mlatInput.value=m;
+
+    slatInput.value=s;
+
+    //------------------------------------------------GMS lon
+
+    var zn =lonInput.value;
+
+    var gn =parseInt(lonInput.value);
+
+    var mn =parseInt((lonInput.value -parseInt(lonInput.value))*60);
+
+    var sn =((zn-gn-(mn/60))*3600).toFixed(3);
+
+    glonInput.value =gn;
+
+    mlonInput.value=mn;
+
+    slonInput.value=sn;
+
+        }
+
+        function LatngToXy(){
+
+            var z =latInput.value;
+
+        var g =parseInt(latInput.value);
+
+        var m =parseInt((latInput.value -parseInt(latInput.value))*60);
+
+        var s =((z-g-(m/60))*3600).toFixed(3);
+
+        glatInput.value =g;
+
+        mlatInput.value=m;
+
+        slatInput.value=s;
+
+//----------------------------------------------lon
+
+var zn =lonInput.value;
+
+        var gn =parseInt(lonInput.value);
+
+        var mn =parseInt((lonInput.value -parseInt(lonInput.value))*60);
+
+        var sn =((zn-gn-(mn/60))*3600).toFixed(3);
+
+        glonInput.value =gn;
+
+        mlonInput.value=mn;
+
+        slonInput.value=sn;
+
+            proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
+
+            proj4.defs("EPSG:42","+proj=laea +lat_0=34.65 +lon_0=37.35 +x_0=300000 +y_0=300000 +ellps=clrk80 +units=m +no_defs");
+
+            proj4.defs("EPSG:32637","+proj=utm +zone=37 +datum=WGS84 +units=m +no_defs");
+
+    var lat = latInput.value;
+
+    var lon = lonInput.value;
+
+    var trans =proj4(proj4('EPSG:4326'),proj4('EPSG:42'),[lon, lat]);
+
+    var x=trans[0].toFixed(2);
+
+    var y = trans[1].toFixed(2);
+
+    xInput.value=x;
+
+    yInput.value=y;
+
+    var transUtm =proj4(proj4('EPSG:4326'),proj4('EPSG:32637'),[lon, lat]);
+
+    var eu=transUtm[0].toFixed(2);
+
+    var nu = transUtm[1].toFixed(2);
+
+    latInput.value=lat;
+
+    lonInput.value=lon;
+
+   EInput.value=eu;
+
+    NInput.value=nu;
+
+        };
+
+        function glat(){
+
+        var g =glatInput.value;
+
+        var m = (mlatInput.value/60);
+
+        var s = (slatInput.value/3600);
+
+        var gms = Number(g)+ Number(m)+ Number(s);
+
+    latInput.value=gms.toFixed(7);
+
+    };
+
+    function mlat(){
+
+        var g =glatInput.value;
+
+        var m = (mlatInput.value/60);
+
+        var s = (slatInput.value/3600);
+
+        var gms = Number(g)+ Number(m)+ Number(s);
+
+    latInput.value=gms.toFixed(7);
+
+    };
+
+    function slat(){
+
+        var g =glatInput.value;
+
+        var m = (mlatInput.value/60);
+
+        var s = (slatInput.value/3600);
+
+        var gms = Number(g)+ Number(m)+ Number(s);
+
+    latInput.value=gms.toFixed(7);
+
+        
+
+    };
+
+    function glon(){
+
+        var g =glonInput.value;
+
+        var m = (mlonInput.value/60);
+
+        var s = (slonInput.value/3600);
+
+        var gms = Number(g)+ Number(m)+ Number(s);
+
+    lonInput.value=gms.toFixed(7);  
+
+    };
+
+    function mlon(){
+
+        var g =glonInput.value;
+
+        var m = (mlonInput.value/60);
+
+        var s = (slonInput.value/3600);
+
+        var gms = Number(g)+ Number(m)+ Number(s);
+
+    lonInput.value=gms.toFixed(7);  
+
+    };
+
+    function slon(){
+
+        var g =glonInput.value;
+
+        var m = (mlonInput.value/60);
+
+        var s = (slonInput.value/3600);
+
+        var gms = Number(g)+ Number(m)+ Number(s);
+
+    lonInput.value=gms.toFixed(7);    
+
+    };
+
+    </script>
+
+    <script>
+
+      function createPDF() {
+
+            var sTable = document.getElementById('tab').innerHTML;
+        
+            var style = "<style>";
+
+            style = style + "table {width: 100%;font: 17px Calibri;}";
+
+            style = style + "table, th, td {border: solid 1px #DDD; border-collapse: collapse;";
+
+            style = style + "padding: 2px 3px;text-align: center;}";
+
+            style = style + "</style>";
+
+            var win = window.open('', '', 'height=700,width=700');
+
+            win.document.write('<html><head>');
+
+            win.document.write('<title>J.Alloush</title>'+'Projektion Lambert: ');  
+
+            win.document.write(style);      
+
+            win.document.write('</head>');
+
+            win.document.write('<body>');
+
+            win.document.write(sTable);       
+
+            win.document.write('</body></html>');
+
+            win.document.close(); 	
+
+
+            win.print();  
+
+        }
+        </script>
+
+        <script>
+
+            var table ='';
+
+            var rows =4;
+
+            var cols =10;
+
+            for (var r =0; r< rows; r++){
+
+                table += '<tr>';
+
+                for (var c = 1; c<= cols; c++){
+
+                    table += '<td>' + c +'</td>';
+
+                }
+
+                 table += '</tr>';   
+
+            }
+
+           function LatngToE(){
+
+            proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
+
+            proj4.defs("EPSG:42","+proj=laea +lat_0=34.65 +lon_0=37.35 +x_0=300000 +y_0=300000 +ellps=clrk80 +units=m +no_defs");
+
+            proj4.defs("EPSG:32637","+proj=utm +zone=37 +datum=WGS84 +units=m +no_defs");
+
+    var eu = EInput.value;
+
+    var nu = NInput.value;
+
+
+    var transUtm =proj4(proj4('EPSG:32637'),proj4('EPSG:4326'),[eu, nu]);
+
+    //var trans =proj4(proj4('EPSG:4326'),proj4('EPSG:42'),[x, y]);
+
+    var lon=transUtm[0].toFixed(7);
+
+    var lat = transUtm[1].toFixed(7);
+
+    latInput.value=lat;
+
+    lonInput.value=lon;
+
+           }
+
+           function LatngToN(){
+
+            proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
+
+            proj4.defs("EPSG:42","+proj=laea +lat_0=34.65 +lon_0=37.35 +x_0=300000 +y_0=300000 +ellps=clrk80 +units=m +no_defs");
+
+            proj4.defs("EPSG:32637","+proj=utm +zone=37 +datum=WGS84 +units=m +no_defs");
+
+    var eu = EInput.value;
+
+    var nu = NInput.value;
+
+    var transUtm =proj4(proj4('EPSG:32637'),proj4('EPSG:4326'),[eu, nu]);
+
+    //var trans =proj4(proj4('EPSG:4326'),proj4('EPSG:42'),[x, y]);
+
+    var lon=transUtm[0].toFixed(7);
+
+    var lat = transUtm[1].toFixed(7);
+
+    latInput.value=lat;
+
+    lonInput.value=lon;
+}
+
+        </script>
+
 </body>
+
+
+
 </html>
