@@ -7,8 +7,6 @@
     <script src="js/bootstrap.bundle.min.js"></script>		    
 	<script src="js/turf.min.js" async></script>
 	<link rel="stylesheet" href="js/leaflet.css">
-    <link rel="stylesheet" href="css/MarkerCluster.css">
-    <link rel="stylesheet" href="css/MarkerCluster.Default.css">
 	<link rel="stylesheet" href="css/map.css">
     <title>Syrian Petroleum Company</title>  
     <link rel="stylesheet" href="css/buttons.dataTables.min.css">
@@ -418,7 +416,8 @@ drawnItems.addLayer(layer);
   proj4.defs("EPSG:25832","+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
 
 //--------------------------------------------------------XY----------COORDINAT
-
+    <script type="text/javascript" src="src/Leaflet.LinearMeasurement.js"></script>
+    <script src="src/main.js"></script>
         function createPDF() {
 
             var sTable = document.getElementById('tab').innerHTML;
